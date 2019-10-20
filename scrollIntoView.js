@@ -18,6 +18,10 @@ function setElementScroll(element, x, y){
     }
 }
 
+function getElementScroll(element) {
+    return { x: element.scrollLeft, y: element.scrollTop };
+}
+
 function getTargetScrollLocation(scrollSettings, parent){
     var align = scrollSettings.align,
         target = scrollSettings.target,
@@ -65,7 +69,11 @@ function getTargetScrollLocation(scrollSettings, parent){
         x: x,
         y: y,
         differenceX: differenceX,
-        differenceY: differenceY
+        differenceY: differenceY,
+        direction: {
+            y: Math.sign(differenceX),
+            x: Math.sign(differenceY)
+        }
     };
 }
 
@@ -74,14 +82,28 @@ function animate(parent){
     if(!scrollSettings){
         return;
     }
-
     var location = getTargetScrollLocation(scrollSettings, parent),
-        time = Date.now() - scrollSettings.startTime,
-        timeValue = Math.min(1 / scrollSettings.time * time, 1);
-
+    time = Date.now() - scrollSettings.startTime,
+    timeValue = Math.min(1 / scrollSettings.time * time, 1);
+    
+    if (!scrollSettings.direction) {
+        scrollSettings.direction = {
+            x: location.direction.x,
+            y: location.direction.y
+        };
+    }
+    console.table(location.direction, scrollSettings.direction);
     if(
         time > scrollSettings.time &&
-        scrollSettings.endIterations > 3
+        scrollSettings.endIterations > 3 ||
+        (
+            location.direction.x !== scrollSettings.direction.x &&
+            location.direction.y !== scrollSettings.direction.y
+        ) ||
+        (
+            location.direction.x === 0 &&
+            location.direction.y === 0
+        )
     ){
         setElementScroll(parent, location.x, location.y);
         parent._scrollSettings = null;
@@ -91,7 +113,12 @@ function animate(parent){
     scrollSettings.endIterations++;
 
     var easeValue = 1 - scrollSettings.ease(timeValue);
-
+    if (location.directionX !== scrollSettings.directionX) {
+        location.differenceX = 0;
+    }
+    if (location.directionY !== scrollSettings.directionY) {
+        location.differenceY = 0;
+    }
     setElementScroll(parent,
         location.x - location.differenceX * easeValue,
         location.y - location.differenceY * easeValue
